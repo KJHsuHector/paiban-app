@@ -1,0 +1,246 @@
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-calendar: rgba(15, 23, 42, 0.4);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.5);
+  --accent-light: #60a5fa;
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --weekend-bg: rgba(241, 245, 249, 0.05);
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  
+  --shadow-glass: 0 4px 30px rgba(0, 0, 0, 0.5);
+  --font-family: 'Inter', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+  /* Dark modern aesthetic */
+  background-image: 
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.15), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.1), transparent 40%);
+  background-attachment: fixed;
+}
+
+/* Glass Panels */
+.glass {
+  background: var(--bg-secondary);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  box-shadow: var(--shadow-glass);
+}
+
+.glass-input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-glass);
+  color: var(--text-main);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.glass-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* Calendar Grid */
+.calendar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  flex-grow: 1;
+}
+
+.calendar-cell {
+  background: var(--bg-calendar);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  min-height: 120px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.calendar-cell.weekend {
+  background: var(--weekend-bg);
+}
+
+.calendar-cell.today {
+  border-color: var(--accent-light);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.calendar-cell.drag-over {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--accent);
+}
+
+.calendar-cell.error-state {
+  border-color: var(--error);
+  background: var(--error-bg);
+}
+
+.cell-date {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+.cell-date.current-month {
+  color: var(--text-main);
+}
+
+/* Doctor Tags */
+.doc-tag {
+  background: linear-gradient(135deg, var(--accent), #2563eb);
+  color: white;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  transition: transform 0.1s;
+}
+
+.doc-tag:active {
+  cursor: grabbing;
+}
+
+.doc-tag.is-dragging {
+  box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+  transform: scale(1.05);
+  z-index: 50;
+}
+
+/* Role Badges */
+.role-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: white;
+}
+.role-fellow { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.role-cr { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.role-r { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.role-pgy { background: linear-gradient(135deg, #10b981, #059669); }
+
+/* Layout Classes */
+.layout-container {
+  display: flex;
+  height: 100vh;
+  padding: 1.5rem;
+  gap: 1.5rem;
+}
+
+.sidebar {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Animations & Utilities */
+.btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: none;
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--error);
+}
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  box-shadow: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.title-gradient {
+  background: linear-gradient(to right, #60a5fa, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
