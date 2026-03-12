@@ -16,11 +16,57 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
   
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd }).map(date => {
     return {
+      dateObj: date,
       dateStr: format(date, 'yyyy-MM-dd'),
       isWeekend: date.getDay() === 0 || date.getDay() === 6
     };
   });
   
+  // Rule: Every R or CR gets one weekend (Fri, Sat, Sun) off.
+  // We identify all Friday-Sunday blocks in the month.
+  const weekendBlocks = [];
+  let currentBlock = [];
+  daysInMonth.forEach(({ dateObj, dateStr }) => {
+    const day = dateObj.getDay();
+    if (day === 5 || day === 6 || day === 0) {
+      currentBlock.push(dateStr);
+      if (day === 0 || dateObj.getTime() === monthEnd.getTime()) {
+        weekendBlocks.push([...currentBlock]);
+        currentBlock = [];
+      }
+    } else {
+      if (currentBlock.length > 0) {
+        weekendBlocks.push([...currentBlock]);
+        currentBlock = [];
+      }
+    }
+  });
+
+  // Deep copy unavailability so we can inject our forced weekend offs
+  const tempUnavailability = JSON.parse(JSON.stringify(unavailability));
+  
+  const rAndCrDocs = doctors.filter(doc => doc.role === 'R' || doc.role === 'CR');
+  if (weekendBlocks.length > 0 && rAndCrDocs.length > 0) {
+    // Sort predictability
+    rAndCrDocs.sort((a, b) => a.id.localeCompare(b.id));
+    
+    // Distribute weekends evenly
+    rAndCrDocs.forEach((doc, index) => {
+      const blockIndex = index % weekendBlocks.length;
+      const datesToBlock = weekendBlocks[blockIndex];
+      
+      if (!tempUnavailability[doc.id]) {
+        tempUnavailability[doc.id] = [];
+      }
+      
+      datesToBlock.forEach(dateStr => {
+        if (!tempUnavailability[doc.id].includes(dateStr)) {
+          tempUnavailability[doc.id].push(dateStr);
+        }
+      });
+    });
+  }
+
   const newSchedule = {};
   
   // Initialize tracking
@@ -63,8 +109,8 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
       if (!allowedRoles.includes(doc.role)) return false;
       // Must not be already assigned today
       if (assignedIdsOfDay.has(doc.id)) return false;
-      // Must not be explicitly unavailable
-      const blockedDays = unavailability[doc.id] || [];
+      // Must not be explicitly unavailable (use our modified tempUnavailability)
+      const blockedDays = tempUnavailability[doc.id] || [];
       if (blockedDays.includes(dateStr)) return false;
       
       return true;
