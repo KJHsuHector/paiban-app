@@ -85,7 +85,13 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
     
     // Base score based on how far they are from target (negative = good, need shifts)
     // We massively increase this weight so hitting exact shift targets is the absolute #1 priority
-    let score = (currentCount - target) * 100000;
+    let score = (currentCount - target) * 10000;
+    
+    // Hard lock: If they've already hit or exceeded their target, give them a massive penalty
+    // so they only get picked if absolutely no one else can do the slot.
+    if (currentCount >= target) {
+      score += 500000;
+    }
     
     if (lastShiftDate[doc.id]) {
       const daysSinceLastShift = differenceInDays(new Date(dateStr), new Date(lastShiftDate[doc.id]));
@@ -133,13 +139,15 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
       if (candidates.length > 0) {
         let picked = candidates[0];
         
-        // Dual-coverage logic: If top person doesn't desperately need a shift (score >= 0),
+        // Dual-coverage logic: If top person doesn't desperately need a shift,
         // and our dual-cover person is available, let the dual-cover person take both to save shifts!
         if (allowDualId) {
           const dualCoverPerson = candidates.find(c => c.id === allowDualId);
+          // Only perform swap if dual cover person is allowed and the picked person
+          // isn't significantly under their quota (score < -5000 means they REALLY need it).
           if (dualCoverPerson && picked.id !== allowDualId) {
              const pickedScore = getCandidateScore(picked, dateStr, isWeekend);
-             if (pickedScore >= 0) {
+             if (pickedScore > -10000) { // If picked person is close to or over target, let dual guy do it
                picked = dualCoverPerson;
              }
           }

@@ -52,16 +52,36 @@ export const SetupPanel = ({
     setEditingDocId(doc.id);
     setNewDocName(doc.name);
     // Legacy migration: If they have 'R' from local storage, default to 'R1'
-    setNewDocRole(doc.role === 'R' ? 'R1' : doc.role);
-    setTargetWd(doc.targetWeekday);
-    setTargetWe(doc.targetWeekend);
+    const updatedRole = doc.role === 'R' ? 'R1' : doc.role;
+    setNewDocRole(updatedRole);
+    if (updatedRole === 'PGY') {
+      setTargetWd(5);
+      setTargetWe(2);
+    } else {
+      setTargetWd(doc.targetWeekday);
+      setTargetWe(doc.targetWeekend);
+    }
   };
 
   const cancelEditing = () => {
     setEditingDocId(null);
     setNewDocName('');
-    setTargetWd(0);
-    setTargetWe(0);
+    if (newDocRole === 'PGY') {
+      setTargetWd(5);
+      setTargetWe(2);
+    } else {
+      setTargetWd(0);
+      setTargetWe(0);
+    }
+  };
+
+  const handleRoleChange = (e) => {
+    const role = e.target.value;
+    setNewDocRole(role);
+    if (role === 'PGY') {
+      setTargetWd(5);
+      setTargetWe(2);
+    }
   };
 
   const handleAutoSchedule = () => {
@@ -133,7 +153,7 @@ export const SetupPanel = ({
             <select 
               className="glass-input" 
               value={newDocRole} 
-              onChange={(e) => setNewDocRole(e.target.value)}
+              onChange={handleRoleChange}
               style={{ minWidth: '80px', padding: '0.5rem' }}
             >
               <option value="PGY">PGY</option>
@@ -153,7 +173,7 @@ export const SetupPanel = ({
               className="glass-input" 
               placeholder="Wd" 
               title="Weekday Shifts"
-              value={newDocRole === 'PGY' ? 5 : targetWd}
+              value={targetWd}
               onChange={(e) => setTargetWd(e.target.value)}
               disabled={newDocRole === 'PGY'}
               style={{ width: '40%', opacity: newDocRole === 'PGY' ? 0.6 : 1 }}
@@ -164,7 +184,7 @@ export const SetupPanel = ({
               className="glass-input" 
               placeholder="We" 
               title="Weekend Shifts"
-              value={newDocRole === 'PGY' ? 2 : targetWe}
+              value={targetWe}
               onChange={(e) => setTargetWe(e.target.value)}
               disabled={newDocRole === 'PGY'}
               style={{ width: '40%', opacity: newDocRole === 'PGY' ? 0.6 : 1 }}
