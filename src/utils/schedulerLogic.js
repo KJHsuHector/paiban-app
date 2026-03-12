@@ -45,7 +45,7 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
   // Deep copy unavailability so we can inject our forced weekend offs
   const tempUnavailability = JSON.parse(JSON.stringify(unavailability));
   
-  const rAndCrDocs = doctors.filter(doc => doc.role === 'R' || doc.role === 'CR');
+  const rAndCrDocs = doctors.filter(doc => ['R1', 'R2', 'R3', 'CR'].includes(doc.role));
   if (weekendBlocks.length > 0 && rAndCrDocs.length > 0) {
     // Sort predictability
     rAndCrDocs.sort((a, b) => a.id.localeCompare(b.id));
@@ -84,7 +84,8 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
     const target = isWeekend ? doc.targetWeekend : doc.targetWeekday;
     
     // Base score based on how far they are from target (negative = good, need shifts)
-    let score = (currentCount - target) * 100;
+    // We massively increase this weight so hitting exact shift targets is the absolute #1 priority
+    let score = (currentCount - target) * 100000;
     
     if (lastShiftDate[doc.id]) {
       const daysSinceLastShift = differenceInDays(new Date(dateStr), new Date(lastShiftDate[doc.id]));
@@ -103,13 +104,15 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
     return score;
   };
 
-  const getCandidatesForSlot = (dateStr, isWeekend, allowedRoles, assignedIdsOfDay) => {
+  const getCandidatesForSlot = (dateStr, isWeekend, allowedRoles, assignedIdsOfDay, allowDualId = null) => {
     const availableDocs = doctors.filter(doc => {
       // Must be allowed role
       if (!allowedRoles.includes(doc.role)) return false;
-      // Must not be already assigned today
-      if (assignedIdsOfDay.has(doc.id)) return false;
-      // Must not be explicitly unavailable (use our modified tempUnavailability)
+      
+      // Must not be already assigned today, UNLESS they are the special dual-cover ID
+      if (assignedIdsOfDay.has(doc.id) && doc.id !== allowDualId) return false;
+      
+      // Must not be explicitly unavailable
       const blockedDays = tempUnavailability[doc.id] || [];
       if (blockedDays.includes(dateStr)) return false;
       
@@ -125,28 +128,49 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
     const daySchedule = { chief: null, delivery: null, ward: null };
     const assignedIds = new Set();
 
-    const assignSlot = (slotName, allowedRoles) => {
-      const candidates = getCandidatesForSlot(dateStr, isWeekend, allowedRoles, assignedIds);
+    const assignSlot = (slotName, allowedRoles, allowDualId = null) => {
+      const candidates = getCandidatesForSlot(dateStr, isWeekend, allowedRoles, assignedIds, allowDualId);
       if (candidates.length > 0) {
-        const picked = candidates[0];
+        let picked = candidates[0];
+        
+        // Dual-coverage logic: If top person doesn't desperately need a shift (score >= 0),
+        // and our dual-cover person is available, let the dual-cover person take both to save shifts!
+        if (allowDualId) {
+          const dualCoverPerson = candidates.find(c => c.id === allowDualId);
+          if (dualCoverPerson && picked.id !== allowDualId) {
+             const pickedScore = getCandidateScore(picked, dateStr, isWeekend);
+             if (pickedScore >= 0) {
+               picked = dualCoverPerson;
+             }
+          }
+        }
+
         daySchedule[slotName] = { ...picked };
-        assignedIds.add(picked.id);
         
-        if (isWeekend) shiftsCount.we[picked.id]++;
-        else shiftsCount.wd[picked.id]++;
-        
-        lastShiftDate[picked.id] = dateStr;
+        // Only increment shift counts if they weren't already assigned today
+        if (!assignedIds.has(picked.id)) {
+          assignedIds.add(picked.id);
+          if (isWeekend) shiftsCount.we[picked.id]++;
+          else shiftsCount.wd[picked.id]++;
+          lastShiftDate[picked.id] = dateStr;
+        }
       }
     };
 
-    // 1. Chief Slot (Fellow -> CR)
+    // 1. Chief Slot
     assignSlot('chief', ['Fellow', 'CR']);
     
-    // 2. Delivery Slot (R -> CR)
-    assignSlot('delivery', ['R', 'CR']);
+    // 2. Delivery Slot
+    assignSlot('delivery', ['CR', 'R3', 'R2', 'R1']);
     
-    // 3. Ward Slot (PGY -> R)
-    assignSlot('ward', ['PGY', 'R']);
+    // 3. Ward Slot
+    // If the person assigned to delivery is R2 or R3, they are eligible to cover ward simultaneously!
+    let eligibleDualCoverId = null;
+    if (daySchedule.delivery && ['R2', 'R3'].includes(daySchedule.delivery.role)) {
+      eligibleDualCoverId = daySchedule.delivery.id;
+    }
+    
+    assignSlot('ward', ['PGY', 'R1', 'R2', 'R3'], eligibleDualCoverId);
 
     newSchedule[dateStr] = daySchedule;
   });

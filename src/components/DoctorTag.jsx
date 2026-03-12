@@ -11,7 +11,9 @@ export const DoctorTag = ({ doctor, index, isError, uniqueId, isHighlighted }) =
         switch (doctor.role) {
           case 'Fellow': roleGradient = 'linear-gradient(135deg, #ef4444, #b91c1c)'; break;
           case 'CR': roleGradient = 'linear-gradient(135deg, #f59e0b, #d97706)'; break;
-          case 'R': roleGradient = 'linear-gradient(135deg, #3b82f6, #2563eb)'; break;
+          case 'R3': roleGradient = 'linear-gradient(135deg, #8b5cf6, #6d28d9)'; break;
+          case 'R2': roleGradient = 'linear-gradient(135deg, #0ea5e9, #0369a1)'; break;
+          case 'R1': roleGradient = 'linear-gradient(135deg, #3b82f6, #1d4ed8)'; break;
           case 'PGY': roleGradient = 'linear-gradient(135deg, #10b981, #059669)'; break;
           default: roleGradient = 'linear-gradient(135deg, #6b7280, #4b5563)';
         }

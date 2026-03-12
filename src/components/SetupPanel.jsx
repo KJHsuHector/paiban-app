@@ -28,15 +28,22 @@ export const SetupPanel = ({
     e.preventDefault();
     if (newDocName.trim()) {
       if (editingDocId) {
-        editDoctor(editingDocId, newDocName.trim(), newDocRole, targetWd, targetWe);
+        // Enforce PGY defaults during edit
+        const finalWd = newDocRole === 'PGY' ? 5 : targetWd;
+        const finalWe = newDocRole === 'PGY' ? 2 : targetWe;
+        editDoctor(editingDocId, newDocName.trim(), newDocRole, finalWd, finalWe);
         setEditingDocId(null);
       } else {
-        addDoctor(newDocName.trim(), newDocRole, targetWd, targetWe);
+        // Enforce PGY defaults during add
+        const finalWd = newDocRole === 'PGY' ? 5 : targetWd;
+        const finalWe = newDocRole === 'PGY' ? 2 : targetWe;
+        addDoctor(newDocName.trim(), newDocRole, finalWd, finalWe);
       }
       setNewDocName('');
-      setTargetWd(0);
-      setTargetWe(0);
-      // Keep role same for rapid entry
+      if (newDocRole !== 'PGY') {
+        setTargetWd(0);
+        setTargetWe(0);
+      }
     }
   };
 
@@ -129,7 +136,9 @@ export const SetupPanel = ({
               style={{ minWidth: '80px', padding: '0.5rem' }}
             >
               <option value="PGY">PGY</option>
-              <option value="R">R</option>
+              <option value="R1">R1</option>
+              <option value="R2">R2</option>
+              <option value="R3">R3</option>
               <option value="CR">CR</option>
               <option value="Fellow">Fellow</option>
             </select>
@@ -143,9 +152,10 @@ export const SetupPanel = ({
               className="glass-input" 
               placeholder="Wd" 
               title="Weekday Shifts"
-              value={targetWd}
+              value={newDocRole === 'PGY' ? 5 : targetWd}
               onChange={(e) => setTargetWd(e.target.value)}
-              style={{ width: '40%' }}
+              disabled={newDocRole === 'PGY'}
+              style={{ width: '40%', opacity: newDocRole === 'PGY' ? 0.6 : 1 }}
             />
             <input 
               type="number" 
@@ -153,9 +163,10 @@ export const SetupPanel = ({
               className="glass-input" 
               placeholder="We" 
               title="Weekend Shifts"
-              value={targetWe}
+              value={newDocRole === 'PGY' ? 2 : targetWe}
               onChange={(e) => setTargetWe(e.target.value)}
-              style={{ width: '40%' }}
+              disabled={newDocRole === 'PGY'}
+              style={{ width: '40%', opacity: newDocRole === 'PGY' ? 0.6 : 1 }}
             />
             <button type="submit" className={editingDocId ? "btn btn-primary" : "btn"} style={{ padding: '0.5rem' }} disabled={!newDocName.trim()}>
               {editingDocId ? <Check size={20} /> : <Plus size={20} />}
