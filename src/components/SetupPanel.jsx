@@ -51,7 +51,8 @@ export const SetupPanel = ({
     e.stopPropagation();
     setEditingDocId(doc.id);
     setNewDocName(doc.name);
-    setNewDocRole(doc.role);
+    // Legacy migration: If they have 'R' from local storage, default to 'R1'
+    setNewDocRole(doc.role === 'R' ? 'R1' : doc.role);
     setTargetWd(doc.targetWeekday);
     setTargetWe(doc.targetWeekend);
   };

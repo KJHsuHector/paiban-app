@@ -11,6 +11,7 @@ function App() {
     targetMonth,
     schedule,
     addDoctor,
+    editDoctor,
     removeDoctor,
     toggleUnavailability,
     setTargetMonth,
@@ -34,6 +35,7 @@ function App() {
           unavailability={unavailability}
           targetMonth={targetMonth}
           addDoctor={addDoctor}
+          editDoctor={editDoctor}
           removeDoctor={removeDoctor}
           toggleUnavailability={toggleUnavailability}
           setTargetMonth={setTargetMonth}
