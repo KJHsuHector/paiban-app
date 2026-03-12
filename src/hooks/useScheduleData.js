@@ -45,6 +45,40 @@ export const useScheduleData = () => {
     });
   };
 
+  const editDoctor = (id, newName, newRole, targetWeekday, targetWeekend) => {
+    if (!newName.trim()) return;
+    setData(prev => {
+      // Prevent duplicates by name (if changing name to someone else's)
+      if (prev.doctors.some(d => d.name === newName && d.id !== id)) return prev;
+      
+      const updatedDoc = {
+        id,
+        name: newName,
+        role: newRole,
+        targetWeekday: parseInt(targetWeekday, 10) || 0,
+        targetWeekend: parseInt(targetWeekend, 10) || 0
+      };
+
+      const newDoctors = prev.doctors.map(d => d.id === id ? updatedDoc : d);
+      
+      // Update instances of this doctor in the schedule
+      const newSchedule = {};
+      Object.keys(prev.schedule).forEach(date => {
+        const daySlots = { ...prev.schedule[date] };
+        if (daySlots.chief?.id === id) daySlots.chief = updatedDoc;
+        if (daySlots.delivery?.id === id) daySlots.delivery = updatedDoc;
+        if (daySlots.ward?.id === id) daySlots.ward = updatedDoc;
+        newSchedule[date] = daySlots;
+      });
+
+      return {
+        ...prev,
+        doctors: newDoctors,
+        schedule: newSchedule
+      };
+    });
+  };
+
   const removeDoctor = (id) => {
     setData(prev => {
       // Clean up unavailability related to this doctor
@@ -140,6 +174,7 @@ export const useScheduleData = () => {
   return {
     ...data,
     addDoctor,
+    editDoctor,
     removeDoctor,
     toggleUnavailability,
     setTargetMonth,

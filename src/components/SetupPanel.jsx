@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, X, Calendar as CalendarIcon, Wand2 } from 'lucide-react';
+import { Plus, X, Calendar as CalendarIcon, Wand2, Edit2, Check } from 'lucide-react';
 import { generateSchedule } from '../utils/schedulerLogic';
 
 export const SetupPanel = ({
@@ -8,6 +8,7 @@ export const SetupPanel = ({
   unavailability,
   targetMonth,
   addDoctor,
+  editDoctor,
   removeDoctor,
   toggleUnavailability,
   setTargetMonth,
@@ -19,16 +20,39 @@ export const SetupPanel = ({
   const [newDocRole, setNewDocRole] = useState('PGY');
   const [targetWd, setTargetWd] = useState(0);
   const [targetWe, setTargetWe] = useState(0);
+  
+  const [editingDocId, setEditingDocId] = useState(null);
 
-  const handleAddDoctor = (e) => {
+  const handleAddOrEditDoctor = (e) => {
     e.preventDefault();
     if (newDocName.trim()) {
-      addDoctor(newDocName.trim(), newDocRole, targetWd, targetWe);
+      if (editingDocId) {
+        editDoctor(editingDocId, newDocName.trim(), newDocRole, targetWd, targetWe);
+        setEditingDocId(null);
+      } else {
+        addDoctor(newDocName.trim(), newDocRole, targetWd, targetWe);
+      }
       setNewDocName('');
       setTargetWd(0);
       setTargetWe(0);
       // Keep role same for rapid entry
     }
+  };
+
+  const startEditing = (doc, e) => {
+    e.stopPropagation();
+    setEditingDocId(doc.id);
+    setNewDocName(doc.name);
+    setNewDocRole(doc.role);
+    setTargetWd(doc.targetWeekday);
+    setTargetWe(doc.targetWeekend);
+  };
+
+  const cancelEditing = () => {
+    setEditingDocId(null);
+    setNewDocName('');
+    setTargetWd(0);
+    setTargetWe(0);
   };
 
   const handleAutoSchedule = () => {
@@ -59,8 +83,15 @@ export const SetupPanel = ({
 
       {/* Doctor List */}
       <div className="glass-panel" style={{ padding: '1rem', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <label className="input-label">Add Doctor</label>
-        <form onSubmit={handleAddDoctor} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+        <label className="input-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {editingDocId ? <span style={{ color: 'var(--accent-primary)' }}>Edit Doctor</span> : <span>Add Doctor</span>}
+          {editingDocId && (
+            <button onClick={cancelEditing} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
+              <X size={12} style={{ marginRight: '2px' }}/> Cancel
+            </button>
+          )}
+        </label>
+        <form onSubmit={handleAddOrEditDoctor} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input 
               type="text" 
@@ -107,8 +138,8 @@ export const SetupPanel = ({
               onChange={(e) => setTargetWe(e.target.value)}
               style={{ width: '40%' }}
             />
-            <button type="submit" className="btn" style={{ padding: '0.5rem' }} disabled={!newDocName.trim()}>
-              <Plus size={20} />
+            <button type="submit" className={editingDocId ? "btn btn-primary" : "btn"} style={{ padding: '0.5rem' }} disabled={!newDocName.trim()}>
+              {editingDocId ? <Check size={20} /> : <Plus size={20} />}
             </button>
           </div>
         </form>
@@ -126,13 +157,24 @@ export const SetupPanel = ({
                   <div className={`role-badge role-${doc.role.toLowerCase()}`}>{doc.role}</div>
                   <span style={{ fontWeight: '600' }}>{doc.name}</span>
                 </div>
-                <button 
-                  className="btn-danger" 
-                  style={{ padding: '0.25rem', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
-                  onClick={(e) => { e.stopPropagation(); removeDoctor(doc.id); }}
-                >
-                  <X size={14} />
-                </button>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  <button 
+                    className="btn-secondary" 
+                    style={{ padding: '0.25rem', borderRadius: '4px', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', background: 'rgba(255, 255, 255, 0.05)' }}
+                    onClick={(e) => startEditing(doc, e)}
+                    title="Edit Doctor"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button 
+                    className="btn-danger" 
+                    style={{ padding: '0.25rem', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); removeDoctor(doc.id); }}
+                    title="Remove Doctor"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
               <div className="text-muted" style={{ fontSize: '0.8rem', display: 'flex', gap: '1rem' }}>
                 <span>Wd: {doc.targetWeekday}</span>
