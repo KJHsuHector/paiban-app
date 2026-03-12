@@ -98,9 +98,13 @@ export const SetupPanel = ({
     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
     const daySlots = schedule[dateStr];
     
+    // Prevent double counting if a doctor covers multiple slots (e.g. dual R2/R3 coverage)
+    const assignedToday = new Set();
+    
     ['chief', 'delivery', 'ward'].forEach(slot => {
       const doc = daySlots[slot];
-      if (doc && currentCounts[doc.id]) {
+      if (doc && currentCounts[doc.id] && !assignedToday.has(doc.id)) {
+        assignedToday.add(doc.id);
         if (isWeekend) currentCounts[doc.id].we++;
         else currentCounts[doc.id].wd++;
       }
