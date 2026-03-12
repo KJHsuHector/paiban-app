@@ -2,9 +2,9 @@ import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { GripVertical } from 'lucide-react';
 
-export const DoctorTag = ({ doctor, index, isError }) => {
+export const DoctorTag = ({ doctor, index, isError, uniqueId }) => {
   return (
-    <Draggable draggableId={`${doctor.id}-${index}`} index={index}>
+    <Draggable draggableId={uniqueId || doctor.id} index={index}>
       {(provided, snapshot) => {
         
         let roleGradient = '';

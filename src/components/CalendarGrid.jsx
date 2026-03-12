@@ -30,7 +30,12 @@ const DailySlot = ({ dateStr, slotId, label, Icon, doctor, unavailability }) => 
               <Icon size={12} /> {label}
             </div>
             {doctor ? (
-              <DoctorTag doctor={doctor} index={0} isError={isError} />
+              <DoctorTag 
+                doctor={doctor} 
+                index={0} 
+                isError={isError} 
+                uniqueId={`${dateStr}_${slotId}_${doctor.id}`} 
+              />
             ) : (
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '4px' }}>Empty</div>
             )}
