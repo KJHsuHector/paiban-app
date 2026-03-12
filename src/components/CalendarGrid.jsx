@@ -5,7 +5,7 @@ import { DoctorTag } from './DoctorTag';
 import { Ban, Stethoscope, Baby, Bed } from 'lucide-react';
 
 // Reusable Slot Component to keep the grid clean
-const DailySlot = ({ dateStr, slotId, label, Icon, doctor, unavailability }) => {
+const DailySlot = ({ dateStr, slotId, label, Icon, doctor, unavailability, selectedDocId }) => {
   const droppableId = `${dateStr}_${slotId}`;
   return (
     <Droppable droppableId={droppableId}>
@@ -33,7 +33,8 @@ const DailySlot = ({ dateStr, slotId, label, Icon, doctor, unavailability }) => 
               <DoctorTag 
                 doctor={doctor} 
                 index={0} 
-                isError={isError} 
+                isError={isError}
+                isHighlighted={doctor.id === selectedDocId}
                 uniqueId={`${dateStr}_${slotId}_${doctor.id}`} 
               />
             ) : (
@@ -98,14 +99,17 @@ export const CalendarGrid = ({ targetMonth, schedule, unavailability, selectedDo
                 <DailySlot 
                   dateStr={dateStr} slotId="chief" label="總值班" 
                   Icon={Stethoscope} doctor={daySchedule.chief} unavailability={unavailability}
+                  selectedDocId={selectedDocId}
                 />
                 <DailySlot 
                   dateStr={dateStr} slotId="delivery" label="產房" 
                   Icon={Baby} doctor={daySchedule.delivery} unavailability={unavailability}
+                  selectedDocId={selectedDocId}
                 />
                 <DailySlot 
                   dateStr={dateStr} slotId="ward" label="病房" 
                   Icon={Bed} doctor={daySchedule.ward} unavailability={unavailability}
+                  selectedDocId={selectedDocId}
                 />
               </div>
             </div>

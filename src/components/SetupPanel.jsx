@@ -12,6 +12,7 @@ export const SetupPanel = ({
   removeDoctor,
   toggleUnavailability,
   setTargetMonth,
+  schedule,
   setSchedule,
   selectedDocId,
   setSelectedDocId
@@ -59,6 +60,24 @@ export const SetupPanel = ({
     const newSchedule = generateSchedule(doctors, unavailability, targetMonth);
     setSchedule(newSchedule);
   };
+
+  // Calculate current assigned shifts for verification
+  const currentCounts = {};
+  doctors.forEach(d => currentCounts[d.id] = { wd: 0, we: 0 });
+  
+  Object.keys(schedule || {}).forEach(dateStr => {
+    const date = new Date(dateStr);
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    const daySlots = schedule[dateStr];
+    
+    ['chief', 'delivery', 'ward'].forEach(slot => {
+      const doc = daySlots[slot];
+      if (doc && currentCounts[doc.id]) {
+        if (isWeekend) currentCounts[doc.id].we++;
+        else currentCounts[doc.id].wd++;
+      }
+    });
+  });
 
   return (
     <div className="glass sidebar">
@@ -176,9 +195,13 @@ export const SetupPanel = ({
                   </button>
                 </div>
               </div>
-              <div className="text-muted" style={{ fontSize: '0.8rem', display: 'flex', gap: '1rem' }}>
-                <span>Wd: {doc.targetWeekday}</span>
-                <span>We: {doc.targetWeekend}</span>
+              <div className="text-muted" style={{ fontSize: '0.8rem', display: 'flex', gap: '1rem', marginTop: '4px' }}>
+                <span style={{ color: currentCounts[doc.id].wd === doc.targetWeekday ? 'var(--success)' : (currentCounts[doc.id].wd > doc.targetWeekday ? 'var(--warning)' : 'inherit') }}>
+                  Wd: {currentCounts[doc.id].wd} / {doc.targetWeekday}
+                </span>
+                <span style={{ color: currentCounts[doc.id].we === doc.targetWeekend ? 'var(--success)' : (currentCounts[doc.id].we > doc.targetWeekend ? 'var(--warning)' : 'inherit') }}>
+                  We: {currentCounts[doc.id].we} / {doc.targetWeekend}
+                </span>
               </div>
             </div>
           ))}

@@ -37,6 +37,7 @@ function App() {
           removeDoctor={removeDoctor}
           toggleUnavailability={toggleUnavailability}
           setTargetMonth={setTargetMonth}
+          schedule={schedule}
           setSchedule={setSchedule}
           selectedDocId={selectedDocId}
           setSelectedDocId={setSelectedDocId}

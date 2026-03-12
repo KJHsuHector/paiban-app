@@ -2,7 +2,7 @@ import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { GripVertical } from 'lucide-react';
 
-export const DoctorTag = ({ doctor, index, isError, uniqueId }) => {
+export const DoctorTag = ({ doctor, index, isError, uniqueId, isHighlighted }) => {
   return (
     <Draggable draggableId={uniqueId || doctor.id} index={index}>
       {(provided, snapshot) => {
@@ -26,6 +26,9 @@ export const DoctorTag = ({ doctor, index, isError, uniqueId }) => {
               ...provided.draggableProps.style,
               background: isError ? 'var(--error)' : roleGradient,
               padding: '0.25rem 0.5rem',
+              boxShadow: isHighlighted ? '0 0 0 2px white, 0 0 12px var(--accent-light)' : 'none',
+              zIndex: isHighlighted ? 10 : 1,
+              transition: 'box-shadow 0.2s ease',
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
