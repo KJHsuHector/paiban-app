@@ -84,43 +84,42 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
     const target = isWeekend ? doc.targetWeekend : doc.targetWeekday;
     
     // Base score based on how far they are from target (negative = good, need shifts)
-    // We massively increase this weight so hitting exact shift targets is the absolute #1 priority
-    let score = (currentCount - target) * 10000;
-    
-    // Hard lock: If they've already hit or exceeded their target, give them a massive penalty
-    // so they only get picked if absolutely no one else can do the slot.
-    if (currentCount >= target) {
-      score += 500000;
-    }
+    let score = (currentCount - target) * 1000;
     
     if (lastShiftDate[doc.id]) {
-      const daysSinceLastShift = differenceInDays(new Date(dateStr), new Date(lastShiftDate[doc.id]));
-      
-      if (daysSinceLastShift === 1) {
-        score += 10000; // Heavily penalize consecutive days
-      } else if (daysSinceLastShift === 2) {
-        score += 500;  // Penalize 1 day gap
+      const daysGap = differenceInDays(new Date(dateStr), new Date(lastShiftDate[doc.id]));
+      if (daysGap === 2) {
+         score += 100; // Slight penalty for 2 day gap compared to > 2 days
       } else {
-        score -= daysSinceLastShift * 5; // Reward larger gaps
+         score -= daysGap * 10;
       }
     } else {
-      score -= 50; // Never worked this month, early priority
+      score -= 500; // Never worked this month, early priority
     }
     
     return score;
   };
 
-  const getCandidatesForSlot = (dateStr, isWeekend, allowedRoles, assignedIdsOfDay, allowDualId = null) => {
+  const getCandidatesForSlot = (dateStr, isWeekend, allowedRoles, assignedIdsOfDay) => {
     const availableDocs = doctors.filter(doc => {
-      // Must be allowed role
       if (!allowedRoles.includes(doc.role)) return false;
       
-      // Must not be already assigned today, UNLESS they are the special dual-cover ID
-      if (assignedIdsOfDay.has(doc.id) && doc.id !== allowDualId) return false;
+      if (assignedIdsOfDay.has(doc.id)) return false;
       
-      // Must not be explicitly unavailable
+      // MUST: Blocked dates must be honored
       const blockedDays = tempUnavailability[doc.id] || [];
       if (blockedDays.includes(dateStr)) return false;
+      
+      // MUST: Strict Quotas
+      const currentCount = isWeekend ? shiftsCount.we[doc.id] : shiftsCount.wd[doc.id];
+      const target = isWeekend ? doc.targetWeekend : doc.targetWeekday;
+      if (currentCount >= target) return false;
+      
+      // MUST: No consecutive shifts (at least 1 day apart)
+      if (lastShiftDate[doc.id]) {
+        const daysGap = differenceInDays(new Date(dateStr), new Date(lastShiftDate[doc.id]));
+        if (daysGap <= 1) return false;
+      }
       
       return true;
     });
@@ -134,51 +133,38 @@ export const generateSchedule = (doctors, unavailability, targetMonth) => {
     const daySchedule = { chief: null, delivery: null, ward: null };
     const assignedIds = new Set();
 
-    const assignSlot = (slotName, allowedRoles, allowDualId = null) => {
-      const candidates = getCandidatesForSlot(dateStr, isWeekend, allowedRoles, assignedIds, allowDualId);
+    const assignSlot = (slotName, primaryRoles, fallbackRoles = []) => {
+      let candidates = getCandidatesForSlot(dateStr, isWeekend, primaryRoles, assignedIds);
+      
+      if (candidates.length === 0 && fallbackRoles.length > 0) {
+        candidates = getCandidatesForSlot(dateStr, isWeekend, fallbackRoles, assignedIds);
+      }
+      
       if (candidates.length > 0) {
         let picked = candidates[0];
-        
-        // Dual-coverage logic: If top person doesn't desperately need a shift,
-        // and our dual-cover person is available, let the dual-cover person take both to save shifts!
-        if (allowDualId) {
-          const dualCoverPerson = candidates.find(c => c.id === allowDualId);
-          // Only perform swap if dual cover person is allowed and the picked person
-          // isn't significantly under their quota (score < -5000 means they REALLY need it).
-          if (dualCoverPerson && picked.id !== allowDualId) {
-             const pickedScore = getCandidateScore(picked, dateStr, isWeekend);
-             if (pickedScore > -10000) { // If picked person is close to or over target, let dual guy do it
-               picked = dualCoverPerson;
-             }
-          }
-        }
-
         daySchedule[slotName] = { ...picked };
         
-        // Only increment shift counts if they weren't already assigned today
-        if (!assignedIds.has(picked.id)) {
-          assignedIds.add(picked.id);
-          if (isWeekend) shiftsCount.we[picked.id]++;
-          else shiftsCount.wd[picked.id]++;
-          lastShiftDate[picked.id] = dateStr;
-        }
+        assignedIds.add(picked.id);
+        if (isWeekend) shiftsCount.we[picked.id]++;
+        else shiftsCount.wd[picked.id]++;
+        lastShiftDate[picked.id] = dateStr;
       }
     };
 
-    // 1. Chief Slot
-    assignSlot('chief', ['Fellow', 'CR']);
+    // 1. Chief Slot: Fellow -> CR
+    assignSlot('chief', ['Fellow'], ['CR']);
     
-    // 2. Delivery Slot
-    assignSlot('delivery', ['CR', 'R3', 'R2', 'R1']);
+    // 2. Delivery Slot: R1/R2/R3 -> CR
+    assignSlot('delivery', ['R1', 'R2', 'R3'], ['CR']);
     
-    // 3. Ward Slot
-    // If the person assigned to delivery is R2 or R3, they are eligible to cover ward simultaneously!
-    let eligibleDualCoverId = null;
+    // 3. Ward Slot: PGY -> R1
+    // MUST: Dual Coverage override. If delivery is R2 or R3, they concurrently cover ward.
     if (daySchedule.delivery && ['R2', 'R3'].includes(daySchedule.delivery.role)) {
-      eligibleDualCoverId = daySchedule.delivery.id;
+      daySchedule.ward = { ...daySchedule.delivery };
+      // Does not increment shiftsCount again
+    } else {
+      assignSlot('ward', ['PGY'], ['R1']);
     }
-    
-    assignSlot('ward', ['PGY', 'R1', 'R2', 'R3'], eligibleDualCoverId);
 
     newSchedule[dateStr] = daySchedule;
   });
